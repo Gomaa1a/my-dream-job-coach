@@ -145,7 +145,7 @@ const WaitlistCard = () => {
                 You were referred by {referrerName ? `“${referrerName}”` : "a teammate"}.
                 Sign up now and they get referral credit.
               </p>
-            )
+            )}
             <h3 className="text-[1.6rem] font-extrabold text-primary-foreground tracking-tight leading-tight mb-1.5">Be First to Access Beta</h3>
             <p className="text-[0.82rem] text-white/50 mb-6 leading-relaxed">Join the waitlist. Refer friends to move up faster and unlock beta access sooner.</p>
 
