@@ -25,6 +25,8 @@ const WaitlistCard = () => {
   const [copied, setCopied] = useState(false);
   const [referralToken, setReferralToken] = useState<string | null>(null);
   const [referrerName, setReferrerName] = useState<string | null>(null);
+  const [isReferralFlow, setIsReferralFlow] = useState(false);
+  const [sessionWarning, setSessionWarning] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -32,6 +34,14 @@ const WaitlistCard = () => {
 
     if (ref) {
       setReferralToken(ref);
+      setIsReferralFlow(true);
+
+      const me = localStorage.getItem("hr_me");
+      if (me) {
+        const parsed = JSON.parse(me);
+        setSessionWarning(`You are currently signed in as ${parsed.email}. To sign up as a referred user, open this link in a private window or clear your session.`);
+      }
+
       (async () => {
         const { data } = await supabase
           .from("waitlist_signups")
@@ -43,6 +53,8 @@ const WaitlistCard = () => {
           setReferrerName(data.name);
         }
       })();
+
+      return;
     }
 
     const me = localStorage.getItem("hr_me");
@@ -140,6 +152,9 @@ const WaitlistCard = () => {
               <span className="w-1.5 h-1.5 rounded-full bg-lime animate-pulse-dot" />
               Reserve Your Spot
             </span>
+            {sessionWarning && !submitted && (
+              <p className="text-xs text-orange-200 mb-3">{sessionWarning}</p>
+            )}
             {referralToken && !submitted && (
               <p className="text-xs text-white/60 mb-3">
                 You were referred by {referrerName ? `“${referrerName}”` : "a teammate"}.
