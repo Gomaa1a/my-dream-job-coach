@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const BASE_URL = typeof window !== "undefined" ? window.location.origin : "";
 
@@ -9,19 +10,6 @@ function hashCode(str: string): string {
   }
   return "hr" + Math.abs(h).toString(36);
 }
-
-interface WaitlistEntry {
-  name: string;
-  email: string;
-  goal: string;
-  code: string;
-  ref: string | null;
-  ts: number;
-}
-
-const getWaitlist = (): WaitlistEntry[] => {
-  try { return JSON.parse(localStorage.getItem("hr_waitlist") || "[]"); } catch { return []; }
-};
 
 const WaitlistCard = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -39,15 +27,22 @@ const WaitlistCard = () => {
     const me = localStorage.getItem("hr_me");
     if (me) {
       const parsed = JSON.parse(me);
-      showSuccess(parsed, getWaitlist());
+      showSuccess(parsed);
     }
   }, []);
 
-  const showSuccess = (me: { name: string; email: string; code: string }, list: WaitlistEntry[]) => {
+  const showSuccess = async (me: { name: string; email: string; code: string }) => {
+    const { data: allSignups } = await supabase
+      .from("waitlist_signups")
+      .select("email, referral_code, referred_by")
+      .order("created_at", { ascending: true });
+
+    const list = allSignups || [];
     const pos = list.findIndex(e => e.email === me.email) + 1 || list.length;
-    const refs = list.filter(e => e.ref === me.code).length;
+    const refs = list.filter(e => e.referred_by === me.code).length;
     const spots = Math.floor(refs / 3) * 10;
     const url = BASE_URL + "?ref=" + me.code;
+
     setPosition(pos);
     setRefCount(refs);
     setSpotsGained(spots);
@@ -55,7 +50,7 @@ const WaitlistCard = () => {
     setSubmitted(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !goal) return;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
@@ -63,14 +58,25 @@ const WaitlistCard = () => {
     setLoading(true);
     const code = hashCode(email);
     const ref = new URLSearchParams(window.location.search).get("ref") || null;
-    const list = getWaitlist();
-    if (!list.find(e => e.email === email)) {
-      list.push({ name, email, goal, code, ref, ts: Date.now() });
-      localStorage.setItem("hr_waitlist", JSON.stringify(list));
+
+    const { error } = await supabase.from("waitlist_signups").insert({
+      name,
+      email,
+      goal,
+      referral_code: code,
+      referred_by: ref,
+    });
+
+    if (error && error.code !== "23505") {
+      // 23505 = unique violation (already signed up)
+      console.error("Signup error:", error);
+      setLoading(false);
+      return;
     }
+
     const me = { name, email, code };
     localStorage.setItem("hr_me", JSON.stringify(me));
-    showSuccess(me, list);
+    await showSuccess(me);
     setLoading(false);
   };
 
