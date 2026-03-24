@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const BASE_URL = typeof window !== "undefined" ? window.location.origin : "";
+const WAITLIST_WEBHOOK_URL = import.meta.env.VITE_WAITLIST_WEBHOOK_URL || "";
 
 function hashCode(str: string): string {
   let h = 0;
@@ -77,6 +78,24 @@ const WaitlistCard = () => {
     const me = { name, email, code };
     localStorage.setItem("hr_me", JSON.stringify(me));
     await showSuccess(me);
+
+    if (WAITLIST_WEBHOOK_URL) {
+      fetch(WAITLIST_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          goal,
+          referral_code: code,
+          referred_by: ref,
+          signed_at: new Date().toISOString(),
+        }),
+      }).catch((webhookError) => {
+        console.warn("Waitlist webhook failed", webhookError);
+      });
+    }
+
     setLoading(false);
   };
 

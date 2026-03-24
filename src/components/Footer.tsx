@@ -6,7 +6,7 @@ const Footer = () => (
     </a>
     <p className="text-xs text-white/30">
       Built with ❤ in Cairo, Egypt &nbsp;·&nbsp;{" "}
-      <a href="mailto:hello@hireready.ai" className="text-lime no-underline hover:underline">hello@hireready.ai</a>
+      <a href="mailto:Team@seekersai.org" className="text-lime no-underline hover:underline">Team@seekersai.org</a>
     </p>
     <p className="text-xs text-white/30">© 2025 HireReady. All rights reserved.</p>
   </footer>
