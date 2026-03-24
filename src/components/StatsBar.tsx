@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const StatsBar = () => {
   const [count, setCount] = useState(47);
 
   useEffect(() => {
-    const list = localStorage.getItem("hr_waitlist");
-    if (list) {
-      const parsed = JSON.parse(list);
-      setCount(Math.max(47, parsed.length));
-    }
+    const fetchCount = async () => {
+      const { count: total } = await supabase
+        .from("waitlist_signups")
+        .select("*", { count: "exact", head: true });
+      if (total !== null) {
+        setCount(Math.max(47, total));
+      }
+    };
+    fetchCount();
   }, []);
 
   return (
