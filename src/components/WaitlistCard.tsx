@@ -23,8 +23,28 @@ const WaitlistCard = () => {
   const [spotsGained, setSpotsGained] = useState(0);
   const [refUrl, setRefUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [referralToken, setReferralToken] = useState<string | null>(null);
+  const [referrerName, setReferrerName] = useState<string | null>(null);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+
+    if (ref) {
+      setReferralToken(ref);
+      (async () => {
+        const { data } = await supabase
+          .from("waitlist_signups")
+          .select("name")
+          .eq("referral_code", ref)
+          .single();
+
+        if (data?.name) {
+          setReferrerName(data.name);
+        }
+      })();
+    }
+
     const me = localStorage.getItem("hr_me");
     if (me) {
       const parsed = JSON.parse(me);
@@ -58,7 +78,7 @@ const WaitlistCard = () => {
 
     setLoading(true);
     const code = hashCode(email);
-    const ref = new URLSearchParams(window.location.search).get("ref") || null;
+    const ref = referralToken || new URLSearchParams(window.location.search).get("ref") || null;
 
     const { error } = await supabase.from("waitlist_signups").insert({
       name,
@@ -90,6 +110,7 @@ const WaitlistCard = () => {
           referral_code: code,
           referred_by: ref,
           signed_at: new Date().toISOString(),
+          referral_owner: ref || null,
         }),
       }).catch((webhookError) => {
         console.warn("Waitlist webhook failed", webhookError);
@@ -119,6 +140,12 @@ const WaitlistCard = () => {
               <span className="w-1.5 h-1.5 rounded-full bg-lime animate-pulse-dot" />
               Reserve Your Spot
             </span>
+            {referralToken && !submitted && (
+              <p className="text-xs text-white/60 mb-3">
+                You were referred by {referrerName ? `“${referrerName}”` : "a teammate"}.
+                Sign up now and they get referral credit.
+              </p>
+            )
             <h3 className="text-[1.6rem] font-extrabold text-primary-foreground tracking-tight leading-tight mb-1.5">Be First to Access Beta</h3>
             <p className="text-[0.82rem] text-white/50 mb-6 leading-relaxed">Join the waitlist. Refer friends to move up faster and unlock beta access sooner.</p>
 
